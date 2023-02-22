@@ -7,3 +7,5 @@ backend/inputs
 *.swp
 *pycache*
 **/*.csv
+*.egg_info
+build/
