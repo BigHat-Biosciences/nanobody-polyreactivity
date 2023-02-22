@@ -10,6 +10,10 @@ with open("VERSION", "r", encoding="utf8") as ver_file:
 
 REQUIRES = ["aiofiles", "biopython", "fastapi", "numpy", "pandas", "pydantic", "python-multipart", "uvicorn"]
 
+package_data = {
+    "bh.polyreactivity.models": ["*"],
+}
+
 setup(
     author="BigHat Biosciences",
     author_email="whaynes@bighatbio.com",
@@ -21,7 +25,7 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     description="BigHat fork of nanobody-polyreactivity to expose backend as a package",
-    include_package_data=True,
+    package_data=package_data,
     install_requires=REQUIRES,
     keywords="example",
     long_description="",
@@ -33,5 +37,5 @@ setup(
     tests_requires="",
     url="https://github.com/BigHat-Biosciences/nanobody-polyreactivity/",
     version=VERSION,
-    zip_safe=False,
+    zip_safe=True,
 )

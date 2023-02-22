@@ -1,0 +1,8 @@
+aiofiles
+biopython
+fastapi
+numpy
+pandas
+pydantic
+python-multipart
+uvicorn
