@@ -1,4 +1,4 @@
-from app.common import score_new_sequences
+from polyreactivity.common import score_new_sequences
 
 import asyncio, os, uuid
 from fastapi import FastAPI, File, HTTPException, UploadFile

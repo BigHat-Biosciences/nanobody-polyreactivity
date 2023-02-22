@@ -6,13 +6,13 @@ from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import re
 from pathlib import Path
 from torch.utils.data import Dataset
-from app.common.double_mutant_generation import generate_doubles
-from app.common.models import CNN, RNN
+from polyreactivity.common.double_mutant_generation import generate_doubles
+from polyreactivity.common.models import CNN, RNN
 import torch
-from app.common.utils import test_cnn,test_rnn, NonAlignedOneHotArrayDataset,OneHotArrayDataset,return_scores
+from polyreactivity.common.utils import test_cnn,test_rnn, NonAlignedOneHotArrayDataset,OneHotArrayDataset,return_scores
 import warnings
 import time
-from app.common.plot_models import make_plots
+from polyreactivity.common.plot_models import make_plots
 
 warnings.filterwarnings("ignore")
 
