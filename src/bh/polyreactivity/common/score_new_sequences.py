@@ -110,12 +110,16 @@ def cdr_seqs_to_onehot(seqs):
         aa_dict[aa] = i
     onehot_array = np.empty((len(seqs), len(seqs.iloc[0]), 20))
     for s, seq in enumerate(seqs):
+        if len(seq) != onehot_array.shape[1]:
+            continue
         onehot_array[s] = one_hot_3D(seq)
     onehot_array = onehot_array.reshape(len(seqs), -1)
     return onehot_array
 
 
 def withgap_CDR3(seq):
+    if type(seq) == float:
+        return ""
     if len(seq) < 22:
         nogap_seq = seq.replace("-", "")
         if len(nogap_seq) % 2 == 0:

@@ -1,28 +1,18 @@
-import pandas as pd
-import subprocess
+import importlib.resources as pkg_resources
 import pickle
-import numpy as np
-from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import re
-from pathlib import Path
+import warnings
 
+import bh.polyreactivity.models as models
+import numpy as np
+import pandas as pd
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from bh.biocore.sequences.number import convert_sequences_to_numbered_frame
-from torch.utils.data import Dataset
 from bh.polyreactivity.common.double_mutant_generation import generate_doubles
 from bh.polyreactivity.common.models import CNN, RNN
-import torch
 from bh.polyreactivity.common.utils import (
-    test_cnn,
-    test_rnn,
-    NonAlignedOneHotArrayDataset,
-    OneHotArrayDataset,
     return_scores,
 )
-import warnings
-import time
-from bh.polyreactivity.common.plot_models import make_plots
-import importlib.resources as pkg_resources
-import bh.polyreactivity.models as models
 
 warnings.filterwarnings("ignore")
 
@@ -120,12 +110,16 @@ def cdr_seqs_to_onehot(seqs):
         aa_dict[aa] = i
     onehot_array = np.empty((len(seqs), len(seqs.iloc[0]), 20))
     for s, seq in enumerate(seqs):
+        if len(seq) != onehot_array.shape[1]:
+            continue
         onehot_array[s] = one_hot_3D(seq)
     onehot_array = onehot_array.reshape(len(seqs), -1)
     return onehot_array
 
 
 def withgap_CDR3(seq):
+    if type(seq) == float:
+        return ""
     if len(seq) < 22:
         nogap_seq = seq.replace("-", "")
         if len(nogap_seq) % 2 == 0:
@@ -277,7 +271,7 @@ def score_sequences(
 
     # log reg
 
-    m = pickle.load(open(pkg_resources.path(models, "logistic_regression_onehot_CDRS.sav"), "rb"))
+    m = pickle.load(pkg_resources.open_binary(models, "logistic_regression_onehot_CDRS.sav"))
     X_test = cdr_seqs_to_onehot(df["CDRS_withgaps"])
     y_score = m.decision_function(X_test)
     y_pred = m.predict(X_test)
@@ -285,7 +279,7 @@ def score_sequences(
     batch_size = 1024
 
     # log reg with 3mers
-    m = pickle.load(open(pkg_resources.path(models, "logistic_regression_3mer_CDRS.sav"), "rb"))
+    m = pickle.load(pkg_resources.open_binary(models, "logistic_regression_3mer_CDRS.sav"))
     if len(df) < batch_size:
         X_test = cdr_seqs_to_kmer(df["CDRS_nogaps"])
         y_score = m.decision_function(X_test)
@@ -299,27 +293,27 @@ def score_sequences(
 
     # CNN full
     model = CNN(input_size=7)
-    filepath = pkg_resources.path(models, "cnn_full_20.tar")
+    filepath = pkg_resources.open_binary(models, "cnn_full_20.tar")
     df["origFACS cnn onehot"] = return_scores(df, model, filepath)
 
     # RNN full
     model = RNN(input_size=20, hidden_size=128, num_layers=2, num_classes=1)
-    filepath = pkg_resources.path(models, "rnn_full_20.tar")
+    filepath = pkg_resources.open_binary(models, "rnn_full_20.tar")
     df["origFACS rnn onehot"] = return_scores(df, model, filepath, region="CDRS_nogaps", model_type="rnn", max_len=39)
 
     # RNN full long
-    filepath = pkg_resources.path(models, "rnn_CDRS_full_dist0_20.tar")
+    filepath = pkg_resources.open_binary(models, "rnn_CDRS_full_dist0_20.tar")
     df["deepFACS rnn onehot"] = return_scores(
         df, model, filepath, region="CDRS_nogaps_full", model_type="rnn", max_len=40
     )
 
     # CNN full long
     model = CNN(input_size=8)
-    filepath = pkg_resources.path(models, "cnn_CDRS_full_dist0_10.tar")
+    filepath = pkg_resources.open_binary(models, "cnn_CDRS_full_dist0_10.tar")
     df["deepFACS cnn onehot"] = return_scores(df, model, filepath, region="CDRS_withgaps_full")
 
     # logreg 3mers full
-    m = pickle.load(open(pkg_resources.path(models, "3mer_logistic_regression_CDRS_full_dist0.sav"), "rb"))
+    m = pickle.load(pkg_resources.open_binary(models, "3mer_logistic_regression_CDRS_full_dist0.sav"))
     if len(df) < batch_size:
         X_test = cdr_seqs_to_kmer(df["CDRS_nogaps_full"])
         y_score = m.decision_function(X_test)
@@ -332,7 +326,7 @@ def score_sequences(
             df["deepFACS lr 3mer"].iloc[batch_tick - batch_size : batch_tick] = y_score
 
     # logreg full
-    m = pickle.load(open(pkg_resources.path(models, "onehot_logistic_regression_CDRS_full_dist0.sav"), "rb"))
+    m = pickle.load(pkg_resources.open_binary(models, "onehot_logistic_regression_CDRS_full_dist0.sav"))
     X_test = cdr_seqs_to_onehot(df["CDRS_withgaps_full"])
     y_score = m.decision_function(X_test)
     df["deepFACS lr onehot"] = y_score
