@@ -114,6 +114,7 @@ def cdr_seqs_to_onehot(seqs):
             continue
         onehot_array[s] = one_hot_3D(seq)
     onehot_array = onehot_array.reshape(len(seqs), -1)
+    onehot_array[np.isnan(onehot_array)] = 0
     return onehot_array
 
 
@@ -176,6 +177,7 @@ def find_glyc(seq):
 
 def extract_cdrs(old_df):
     df = pd.DataFrame()
+    df["full_sequence"] = old_df.groupby(["i"]).aa.apply(lambda x: "".join(x))
     df["CDR1_withgaps"] = (
         old_df.query("kabat_index >= 27 and kabat_index <= 38")
         .fillna("-")
@@ -266,15 +268,19 @@ def score_sequences(
     df = extract_cdrs(numbered_sequences)
     if doubles and len(df) == 1:
         df = generate_doubles(df.copy())
-
+    # Only keep CDRs of the appropriate length for the models
+    df = df[~df["CDRS_nogaps"].isnull()]
+    df = df[df["CDRS_withgaps"].apply(lambda x: len(x) == 39)]
     df = get_summary_statistics(df.copy())
 
     # log reg
-
     m = pickle.load(pkg_resources.open_binary(models, "logistic_regression_onehot_CDRS.sav"))
     X_test = cdr_seqs_to_onehot(df["CDRS_withgaps"])
+    assert (
+        X_test.shape[1] == m.coef_.shape[1]
+    ), f"Shape of the one-hot data {X_test.shape[1]} doesn't match the model coefficients {m.coef_.shape[1]}"
+
     y_score = m.decision_function(X_test)
-    y_pred = m.predict(X_test)
     df["origFACS lr onehot"] = y_score
     batch_size = 1024
 
